@@ -1,0 +1,63 @@
+// Prisma Schema
+// Learn more: https://pris.ly/d/prisma-schema
+
+// ============================================================================
+// Generator Configuration
+// ============================================================================
+// Generates the Prisma Client (TypeScript types and database client)
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================================
+// Database Connection
+// ============================================================================
+// Configures the database provider and connection URL
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Models
+// ============================================================================
+
+// User model - Stores user account information for authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Topic model - Stores forum discussion topics (generated every 2 minutes)
+model Topic {
+  id        String   @id @default(cuid())
+  date      String   // Date string (YYYY-MM-DD format) - kept for display purposes
+  title     String   // Topic title
+  content   String   // Topic discussion content
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments  Comment[] // Comments on this topic
+
+  @@map("topics")
+}
+
+// Comment model - Stores user comments on topics
+model Comment {
+  id        String   @id @default(cuid())
+  topicId   String   // Reference to Topic
+  username  String   // Username of the commenter
+  text      String   // Comment content
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
