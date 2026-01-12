@@ -18,6 +18,9 @@ export const env = {
   sentryDsn: process.env.SENTRY_DSN || '',
   sentryEnvironment: process.env.SENTRY_ENVIRONMENT || 'development',
   
+  // Better Stack (Logtail)
+  logtailSourceToken: process.env.LOGTAIL_SOURCE_TOKEN || '',
+  
   // CORS
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   

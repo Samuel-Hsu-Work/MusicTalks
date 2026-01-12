@@ -5,8 +5,18 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Initialize observability FIRST (before other imports)
+import { initSentry } from './config/sentry';
+import logger from './config/logger';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Initialize Sentry (must be before other middleware)
+const sentryEnabled = initSentry(app);
+
+// Initialize logger
+logger.get(); // Initialize logger
 
 // Middleware
 app.use(cors({
@@ -16,9 +26,21 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Observability middleware (must be before routes)
+import { correlationIdMiddleware } from './middleware/correlationId.middleware';
+import { performanceMiddleware } from './middleware/performance.middleware';
+import { errorHandler } from './middleware/errorHandler.middleware';
+
+app.use(correlationIdMiddleware); // Generate correlation IDs
+app.use(performanceMiddleware); // Track API latency
+
 // Health check route
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'MusicTalks API is running' });
+  res.json({ 
+    status: 'ok', 
+    message: 'MusicTalks API is running',
+    correlationId: req.id,
+  });
 });
 
 // API routes
@@ -27,15 +49,80 @@ app.use('/api', apiRoutes);
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  logger.get().warn('Route not found', {
+    type: '404',
+    method: req.method,
+    path: req.originalUrl,
+    correlation_id: req.id,
+  });
+
+  if (sentryEnabled) {
+    const { captureMessage } = require('./config/sentry');
+    captureMessage(`404 Not Found: ${req.method} ${req.originalUrl}`, 'warning', {
+      correlationId: req.id,
+      tags: { method: req.method, path: req.originalUrl },
+    });
+  }
+
+  res.status(404).json({ 
+    error: 'Route not found',
+    correlationId: req.id,
+  });
 });
 
-// Error handler (basic - will be enhanced with Sentry)
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
+// Error handler (must be last)
+app.use(errorHandler);
 
-app.listen(PORT, () => {
+// Graceful shutdown
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🔍 Sentry: ${sentryEnabled ? '✅ Enabled' : '⚠️ Not configured'}`);
+  console.log(`📊 Better Stack: ${process.env.LOGTAIL_SOURCE_TOKEN ? '✅ Enabled' : '⚠️ Not configured'}`);
+  
+  logger.get().info('Server started', {
+    type: 'system',
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    sentry_enabled: sentryEnabled,
+    logtail_enabled: logger.isLogtailEnabled(),
+  });
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    if (sentryEnabled) {
+      const { Sentry } = require('@sentry/node');
+      Sentry.close(2000).then(() => {
+        console.log('✅ Sentry closed');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  });
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  if (sentryEnabled) {
+    const { Sentry } = require('@sentry/node');
+    Sentry.captureException(reason);
+    Sentry.close(2000).then(() => process.exit(1));
+  } else {
+    process.exit(1);
+  }
+});
+
+process.on('uncaughtException', (error: Error) => {
+  console.error('Uncaught Exception:', error);
+  if (sentryEnabled) {
+    const { Sentry } = require('@sentry/node');
+    Sentry.captureException(error);
+    Sentry.close(2000).then(() => process.exit(1));
+  } else {
+    process.exit(1);
+  }
 });
