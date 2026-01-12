@@ -19,8 +19,30 @@ const sentryEnabled = initSentry(app);
 logger.get(); // Initialize logger
 
 // Middleware
+// CORS configuration - allow production and preview URLs from Vercel
+const corsOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Remove trailing slash for comparison
+    const cleanOrigin = origin.replace(/\/$/, '');
+    const cleanAllowed = corsOrigin.replace(/\/$/, '');
+    
+    // Allow exact match
+    if (cleanOrigin === cleanAllowed) {
+      return callback(null, true);
+    }
+    
+    // Allow all Vercel preview deployments (*.vercel.app) in production
+    if (process.env.NODE_ENV === 'production' && /^https:\/\/.*\.vercel\.app$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(express.json());
