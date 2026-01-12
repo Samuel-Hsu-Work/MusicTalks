@@ -21,8 +21,8 @@ export const performanceMiddleware = (
   const correlationId = req.id;
 
   // Override res.end to capture response time
-  const originalEnd = res.end;
-  res.end = function (chunk?: any, encoding?: any) {
+  const originalEnd = res.end.bind(res);
+  (res as any).end = function (chunk?: any, encoding?: any, cb?: any) {
     const duration = Date.now() - startTime;
     const statusCode = res.statusCode;
 
@@ -51,7 +51,13 @@ export const performanceMiddleware = (
     }
 
     // Call original end method
-    originalEnd.call(res, chunk, encoding);
+    if (typeof chunk === 'function') {
+      return originalEnd(chunk);
+    } else if (typeof encoding === 'function') {
+      return originalEnd(chunk, encoding);
+    } else {
+      return originalEnd(chunk, encoding, cb);
+    }
   };
 
   next();

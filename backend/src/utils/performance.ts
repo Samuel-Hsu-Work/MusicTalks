@@ -1,7 +1,7 @@
 // Performance Tracking Utilities
 // Helper functions for tracking database query performance
 
-import { logDatabaseOperation } from '../config/logger';
+import { logDatabaseOperation, logExternalApiCall } from '../config/logger';
 
 /**
  * Track database operation performance
@@ -52,7 +52,6 @@ export const trackExternalApiCall = async <T>(
     throw err;
   } finally {
     const duration = Date.now() - startTime;
-    const { logExternalApiCall } = require('../config/logger');
     logExternalApiCall(service, endpoint, duration, statusCode, correlationId, error);
   }
 };

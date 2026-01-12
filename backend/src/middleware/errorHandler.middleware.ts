@@ -19,7 +19,7 @@ export const errorHandler = (
   const correlationId = req.id;
 
   // Log error with structured logging
-  logger.error('Error occurred', {
+  logger.get().error('Error occurred', {
     type: 'error',
     error: err.message,
     stack: err.stack,
@@ -68,5 +68,3 @@ export const errorHandler = (
     ...(correlationId && { correlationId }),
   });
 };
-
-import { env } from '../config/env';

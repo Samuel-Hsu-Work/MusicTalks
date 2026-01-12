@@ -2,7 +2,7 @@
 // Contains business logic for authentication (password hashing, user creation, token generation)
 
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from '../config/database';
 import { env } from '../config/env';
 
@@ -43,10 +43,13 @@ export class AuthService {
     });
 
     // Step 4: Create JWT token
+    if (!env.jwtSecret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
     const token = jwt.sign(
       { userId: user.id, username: user.username },
       env.jwtSecret,
-      { expiresIn: env.jwtExpiresIn }
+      { expiresIn: env.jwtExpiresIn || '7d' } as SignOptions
     );
 
     return {
@@ -79,10 +82,13 @@ export class AuthService {
     }
 
     // Step 3: Create JWT token
+    if (!env.jwtSecret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
     const token = jwt.sign(
       { userId: user.id, username: user.username },
       env.jwtSecret,
-      { expiresIn: env.jwtExpiresIn }
+      { expiresIn: env.jwtExpiresIn || '7d' } as SignOptions
     );
 
     // Step 4: Return user (without password) and token
