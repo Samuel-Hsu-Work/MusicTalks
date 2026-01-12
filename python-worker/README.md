@@ -1,6 +1,6 @@
 # Python Worker
 
-Python worker for MusicTalks that automatically generates discussion topics every 2 minutes.
+Python worker for MusicTalks that automatically generates discussion topics every hour.
 
 ## Setup
 
@@ -39,7 +39,7 @@ Python worker for MusicTalks that automatically generates discussion topics ever
 
 ## Configuration
 
-- **Topic Generation**: Runs every 2 minutes
+- **Topic Generation**: Runs every hour
 - **Health Check**: Runs every hour
 - **API Endpoint**: `POST /api/cron/generate-topic`
 - **Authentication**: Uses `x-cron-secret` header

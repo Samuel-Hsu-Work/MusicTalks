@@ -103,8 +103,8 @@ def health_check():
         print(f"❌ Health check failed: {str(e)}")
         sentry_sdk.capture_exception(e)
 
-# Set schedule - Generate topic every 2 minutes
-schedule.every(2).minutes.do(generate_topic)
+# Set schedule - Generate topic every hour
+schedule.every().hour.do(generate_topic)
 
 # Health check every hour
 schedule.every().hour.do(health_check)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     try:
         print("🚀 Python Worker started successfully!")
         print(f"📍 Target API: {API_URL}")
-        print(f"⏰ Schedule: Generate topic every 2 minutes")
+        print(f"⏰ Schedule: Generate topic every hour")
         print(f"🔍 Sentry monitoring: {'Enabled' if os.getenv('SENTRY_DSN') else 'Disabled'}")
         
         # Send startup event to Sentry
@@ -122,7 +122,7 @@ if __name__ == "__main__":
             level='info',
             extras={
                 'api_url': API_URL,
-                'schedule': 'Every 2 minutes'
+                'schedule': 'Every hour'
             }
         )
         
