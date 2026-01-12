@@ -34,6 +34,22 @@ import { errorHandler } from './middleware/errorHandler.middleware';
 app.use(correlationIdMiddleware); // Generate correlation IDs
 app.use(performanceMiddleware); // Track API latency
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'MusicTalks API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      forum: '/api/forum',
+      ai: '/api/ai',
+    },
+    correlationId: req.id,
+  });
+});
+
 // Health check route
 app.get('/health', (req, res) => {
   res.json({ 
